@@ -78,7 +78,7 @@ $options = $conn->query("
 </form>
 
 <br>
-<a href="add_template_fields.php?template_id=<?php echo $template_id; ?>">Back to Template Fields</a><br>
+<a href="add_template_field.php?template_id=<?php echo $template_id; ?>">Back to Template Fields</a><br>
 <a href="index.php">Home</a>
 
 </body>

@@ -2,12 +2,13 @@
 include 'auth_check.php';
 include 'db.php';
 
-// Template ID is required
-if (!isset($_GET['template_id'])) {
+if (isset($_POST['template_id'])) {
+    $template_id = intval($_POST['template_id']);
+} elseif (isset($_GET['template_id'])) {
+    $template_id = intval($_GET['template_id']);
+} else {
     die("Template ID is required.");
 }
-
-$template_id = intval($_GET['template_id']);
 
 // Fetch template info
 $template = $conn->query("

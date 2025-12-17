@@ -48,7 +48,7 @@ $stmt = $conn->prepare("
 ");
 
 $stmt->bind_param(
-    "ississi",
+    "isissi",
     $created_by,
     $customer_code,
     $requested_qty,
@@ -59,5 +59,7 @@ $stmt->bind_param(
 
 $stmt->execute();
 
-header("Location: view_projects.php");
+$project_id = $stmt->insert_id;
+
+header("Location: label.php?project_id=" . $project_id);
 exit;

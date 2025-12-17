@@ -42,8 +42,7 @@ include 'auth_check.php';
     <h3>Reports & Status</h3>
 
     <a href="view_projects.php"> View All Projects</a>
-    <a href="projects_by_stage.php"> View Projects by Step</a>
-    <a href="inventory_on_hand.php"> Inventory On Hand</a>
+    <a href="view_labels.php"> View Labels</a>
 </div>
 
 <hr>

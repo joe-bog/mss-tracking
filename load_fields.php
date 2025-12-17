@@ -1,34 +1,50 @@
 <?php
 include 'db.php';
 
+if (!isset($_GET['template_id']) || !is_numeric($_GET['template_id'])) {
+    exit;
+}
+
 $template_id = intval($_GET['template_id']);
 
-$fields = $conn->query("
-    SELECT * FROM project_template_fields
-    WHERE template_id = $template_id
+// Get fields for this template
+$fields = $conn->prepare("
+    SELECT field_id, field_name
+    FROM project_template_fields
+    WHERE template_id = ?
+    ORDER BY field_id
 ");
+$fields->bind_param("i", $template_id);
+$fields->execute();
+$result = $fields->get_result();
 
-while ($f = $fields->fetch_assoc()):
-    $field_id = $f['field_id'];
-    $field_name = htmlspecialchars($f['field_name']);
-?>
-    <label><?= $field_name ?>:</label><br>
+if ($result->num_rows === 0) {
+    echo "<p><em>No custom fields for this template.</em></p>";
+    exit;
+}
 
-    <select name="field_<?= $field_id ?>" required>
-        <option value="">-- Select <?= $field_name ?> --</option>
-        <?php
-        $options = $conn->query("
-            SELECT option_name
-            FROM project_template_field_options
-            WHERE field_id = $field_id
-        ");
-        while ($o = $options->fetch_assoc()):
-        ?>
-            <option value="<?= htmlspecialchars($o['option_name']) ?>">
-                <?= htmlspecialchars($o['option_name']) ?>
-            </option>
-        <?php endwhile; ?>
-    </select>
-    <br><br>
+while ($field = $result->fetch_assoc()) {
 
-<?php endwhile; ?>
+    echo "<label>{$field['field_name']}:</label><br>";
+
+    echo "<select name='field_{$field['field_id']}' required>";
+    echo "<option value=''>-- Select {$field['field_name']} --</option>";
+
+    // Get options for this field
+    $options = $conn->prepare("
+        SELECT option_name
+        FROM project_template_field_options
+        WHERE field_id = ?
+        ORDER BY option_name
+    ");
+    $options->bind_param("i", $field['field_id']);
+    $options->execute();
+    $optResult = $options->get_result();
+
+    while ($opt = $optResult->fetch_assoc()) {
+        $val = htmlspecialchars($opt['option_name']);
+        echo "<option value='{$val}'>{$val}</option>";
+    }
+
+    echo "</select><br><br>";
+}

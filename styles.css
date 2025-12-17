@@ -17,7 +17,7 @@ body {
     padding: 25px;
     color: #333;
     line-height: 1.5;
-    text-align: center;                 /* CENTER EVERYTHING */
+    text-align: center;
 }
 
 /* CENTERED CONTENT WRAPPER */
@@ -27,16 +27,23 @@ body {
     border-radius: 12px;
     width: 90%;
     max-width: 650px;
-    margin: 25px auto;                  /* CENTER BLOCKS */
+    margin: 25px auto;
     box-shadow: 0px 4px 10px rgba(0,0,0,0.08);
-    text-align: center;                 /* CENTER TEXT & CHILDREN */
+    text-align: center;
 }
 
-/* HEADERS */
+/* HEADERS & HR */
 h1, h2, h3 {
     margin-bottom: 15px;
     font-weight: 600;
     color: #222;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid #ddd;
+    margin: 20px auto;
+    width: 80%;
 }
 
 /* LABELS */
@@ -55,7 +62,7 @@ textarea {
     width: 80%;
     max-width: 350px;
     padding: 12px;
-    margin: 12px auto;                  /* CENTER INPUTS */
+    margin: 12px auto;
     font-size: 18px;
     border: 1px solid #bbb;
     border-radius: 6px;
@@ -89,30 +96,30 @@ input[type="submit"]:hover {
     background: #005fa3;
 }
 
-/* LINKS */
+/* LINKS - Standard inline links (Merged & Fixed) */
 a {
     color: #0077cc;
     text-decoration: none;
     font-size: 18px;
-    margin: 10px 0;
-    display: inline-block;
+    margin: 10px auto;      /* Centers the link block */
+    display: block;         /* Allows block-level centering with margin auto */
+    width: fit-content;     /* CRITICAL: Shrinks clickable area to text width */
+    padding: 5px 10px;
 }
 
 a:hover {
     text-decoration: underline;
 }
 
-/* DASHBOARD LINKS */
+/* DASHBOARD LINKS - Specific style if used in dashboard containers */
 .dashboard a {
-    display: block;
     background: #eee;
-    padding: 12px 15px;
+    padding: 12px 25px;
     margin: 10px auto;
-    width: 80%;
+    width: fit-content;    
+    min-width: 200px;      
     max-width: 350px;
     border-radius: 6px;
-    font-size: 18px;
-    transition: 0.2s;
     text-align: center;
     border: 1px solid #ddd;
 }
@@ -120,13 +127,24 @@ a:hover {
 .dashboard a:hover {
     background: #dcdcdc;
     border-color: #0077cc;
+    text-decoration: none;
 }
 
-/* BARCODE IMAGE */
-.barcode, img {
-    display: block;
-    margin: 20px auto;                   /* CENTER BARCODE IMAGE */
-    padding: 10px;
+/* SECTIONS (The Flexbox fix) */
+.section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;    /* Keeps children from stretching full-width */
+    width: 100%;            
+    margin: 20px auto;
+    text-align: center;
+}
+
+/* LOGOUT SPECIAL LINK */
+.logout {
+    margin-top: 30px;
+    color: #cc0000 !important; /* Forces red color */
+    font-weight: bold;
 }
 
 /* SUCCESS / ERROR MESSAGES */
@@ -150,22 +168,13 @@ a:hover {
     border-radius: 5px;
 }
 
-/* SCAN INPUT */
-.scan-input {
-    font-size: 24px;
-    padding: 14px;
-    width: 80%;
-    max-width: 400px;
-    margin: 15px auto;
+/* MISC */
+.barcode, img {
     display: block;
+    margin: 20px auto;
+    padding: 10px;
 }
 
-/* CENTER ALL FORM GROUPS */
 form {
     text-align: center;
-}
-
-.section {
-    display: flex;
-    flex-direction: column;
 }
