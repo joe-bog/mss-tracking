@@ -314,6 +314,30 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
         .text-center {
             text-align: center;
         }
+
+        .camera-panel {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .camera-panel.active {
+            display: block;
+        }
+
+        .camera-preview {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 12px;
+            border: 2px solid #e0e6ed;
+            background: #000;
+        }
+
+        .scan-status {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
         
         @media (max-width: 768px) {
             body {
@@ -352,15 +376,27 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
         <?php if (!$step): ?>
             <div class="card">
                 <div class="scan-icon">📷</div>
-                <form method="post">
+                <form method="post" id="scan-form">
                     <div class="form-group">
                         <label>Scan Barcode to Continue</label>
                         <input type="text"
+                               id="barcode-input"
                                name="barcode"
                                autofocus
                                inputmode="none"
                                placeholder="PROJECT-XXXXX"
                                required>
+                    </div>
+                    <div class="text-center">
+                        <button type="button" class="btn-primary" id="start-camera">
+                            Start Camera Scan
+                        </button>
+                    </div>
+                    <div class="camera-panel" id="camera-panel">
+                        <video id="camera-preview" class="camera-preview" muted playsinline></video>
+                        <div class="scan-status" id="scan-status">
+                            Align the barcode within the frame to scan.
+                        </div>
                     </div>
                 </form>
             </div>
@@ -428,5 +464,56 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             <a href="index.php" class="back-link">← Back to Home</a>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <script>
+        const startButton = document.getElementById('start-camera');
+        const cameraPanel = document.getElementById('camera-panel');
+        const cameraPreview = document.getElementById('camera-preview');
+        const scanStatus = document.getElementById('scan-status');
+        const barcodeInput = document.getElementById('barcode-input');
+        const scanForm = document.getElementById('scan-form');
+
+        if (startButton) {
+            let codeReader = null;
+
+            const setStatus = (message) => {
+                if (scanStatus) {
+                    scanStatus.textContent = message;
+                }
+            };
+
+            startButton.addEventListener('click', () => {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    setStatus('Camera access is not supported on this device.');
+                    return;
+                }
+
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                    setStatus('Camera access requires HTTPS on most tablets.');
+                }
+
+                startButton.disabled = true;
+                startButton.textContent = 'Scanning...';
+                cameraPanel.classList.add('active');
+                setStatus('Starting camera...');
+
+                codeReader = new ZXing.BrowserMultiFormatReader();
+                codeReader.decodeFromVideoDevice(
+                    null,
+                    cameraPreview,
+                    (result, error) => {
+                        if (result) {
+                            barcodeInput.value = result.getText();
+                            setStatus('Barcode detected. Submitting...');
+                            codeReader.reset();
+                            scanForm.submit();
+                        }
+                    }
+                ).catch(() => {
+                    setStatus('Unable to access camera. Check permissions.');
+                });
+            });
+        }
+    </script>
 </body>
 </html>
