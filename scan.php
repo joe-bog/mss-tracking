@@ -66,79 +66,367 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan Project</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        .panel {
-            max-width: 500px;
-            margin: 20px auto;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
             text-align: center;
         }
-        .success { color: green; font-weight: bold; }
-        .error { color: red; font-weight: bold; }
-        .info { color: #444; }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        .header p {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .scan-icon {
+            font-size: 64px;
+            text-align: center;
+            margin-bottom: 20px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 18px;
+            transition: all 0.2s;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+        
+        .project-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e0e6ed;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: #7f8c8d;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .progress-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .progress-section h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .progress-numbers {
+            font-size: 42px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar-container {
+            background: rgba(255, 255, 255, 0.2);
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        
+        .progress-bar-fill {
+            background: white;
+            height: 100%;
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+        
+        .remaining-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            color: white;
+            padding: 16px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .alert {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 12px 20px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .back-link:hover {
+            background: #f8f9fa;
+            transform: translateX(-4px);
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .progress-numbers {
+                font-size: 32px;
+            }
+        }
     </style>
 </head>
 <body>
-
-<h2>Scan License Plate</h2>
-
-<!-- SCAN BARCODE -->
-<?php if (!$step): ?>
-<form method="post" class="panel">
-    <label>Scan Barcode</label>
-    <input type="text"
-           name="barcode"
-           autofocus
-           inputmode="none"
-           placeholder="Scan barcode"
-           required>
-</form>
-<?php endif; ?>
-
-<!-- STEP INFO + QUANTITY -->
-<?php if ($step && $project): ?>
-<div class="panel">
-
-    <p class="info"><strong>Project:</strong> <?= htmlspecialchars($barcode) ?></p>
-    <p class="info"><strong>Current Step:</strong> <?= htmlspecialchars($step['step_description']) ?></p>
-
-    <p class="success">
-        Progress: <?= $completed ?> / <?= $project['requested_qty'] ?>
-    </p>
-
-    <p class="info">
-        Remaining: <?= $remaining ?>
-    </p>
-
-    <!-- QUANTITY CONFIRM -->
-    <form method="post" action="update_step.php">
-        <input type="hidden" name="barcode" value="<?= htmlspecialchars($barcode) ?>">
-
-        <label>Quantity Completed</label>
-        <input type="number"
-               name="updated_qty"
-               min="1"
-               max="<?= $remaining ?>"
-               required>
-
-        <button type="submit">Confirm Update</button>
-    </form>
-
-</div>
-<?php endif; ?>
-
-<?php if (isset($_GET['error'])): ?>
-<div class="panel error">
-    ❌ <?= htmlspecialchars($_GET['error']) ?>
-</div>
-<?php endif; ?>
-
-<div style="text-align:center;">
-    <a href="index.php">Home</a>
-</div>
-
+    <div class="container">
+        <div class="header">
+            <h1>📱 Scan License Plate</h1>
+            <p>Logged in as: <?= htmlspecialchars($_SESSION['user_name']) ?></p>
+        </div>
+        
+        <?php if (isset($_GET['error'])): ?>
+            <div class="alert error">
+                <span style="font-size: 24px;">❌</span>
+                <span><?= htmlspecialchars($_GET['error']) ?></span>
+            </div>
+        <?php endif; ?>
+        
+        <!-- SCAN BARCODE -->
+        <?php if (!$step): ?>
+            <div class="card">
+                <div class="scan-icon">📷</div>
+                <form method="post">
+                    <div class="form-group">
+                        <label>Scan Barcode to Continue</label>
+                        <input type="text"
+                               name="barcode"
+                               autofocus
+                               inputmode="none"
+                               placeholder="PROJECT-XXXXX"
+                               required>
+                    </div>
+                </form>
+            </div>
+        <?php endif; ?>
+        
+        <!-- STEP INFO + QUANTITY -->
+        <?php if ($step && $project): ?>
+            <div class="card">
+                <div class="project-info">
+                    <div class="info-row">
+                        <span class="info-label">Project ID</span>
+                        <span class="info-value"><?= htmlspecialchars($barcode) ?></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Current Step</span>
+                        <span class="info-value"><?= htmlspecialchars($step['step_description']) ?></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Template</span>
+                        <span class="info-value"><?= htmlspecialchars($project['template_name']) ?></span>
+                    </div>
+                </div>
+                
+                <div class="progress-section">
+                    <h3>Step Progress</h3>
+                    <div class="progress-numbers">
+                        <?= $completed ?> / <?= $project['requested_qty'] ?>
+                    </div>
+                    <?php 
+                    $progress_percent = $project['requested_qty'] > 0 
+                        ? round(($completed / $project['requested_qty']) * 100) 
+                        : 0;
+                    ?>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: <?= $progress_percent ?>%"></div>
+                    </div>
+                    <div class="remaining-badge">
+                        <?= $remaining ?> Remaining
+                    </div>
+                </div>
+                
+                <!-- QUANTITY CONFIRM -->
+                <form method="post" action="update_step.php">
+                    <input type="hidden" name="barcode" value="<?= htmlspecialchars($barcode) ?>">
+                    
+                    <div class="form-group">
+                        <label>Enter Quantity Completed</label>
+                        <input type="number"
+                               name="updated_qty"
+                               min="1"
+                               max="<?= $remaining ?>"
+                               autofocus
+                               required
+                               style="font-size: 24px; padding: 20px;">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">
+                        ✓ Confirm Update
+                    </button>
+                </form>
+            </div>
+        <?php endif; ?>
+        
+        <div class="text-center">
+            <a href="index.php" class="back-link">← Back to Home</a>
+        </div>
+    </div>
 </body>
 </html>

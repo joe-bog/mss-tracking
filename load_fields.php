@@ -24,11 +24,11 @@ if ($result->num_rows === 0) {
 }
 
 while ($field = $result->fetch_assoc()) {
-
-    echo "<label>{$field['field_name']}:</label><br>";
-
+    echo "<div class='form-group'>";
+    echo "<label>" . htmlspecialchars($field['field_name']) . "</label>";
+    
     echo "<select name='field_{$field['field_id']}' required>";
-    echo "<option value=''>-- Select {$field['field_name']} --</option>";
+    echo "<option value=''>-- Select " . htmlspecialchars($field['field_name']) . " --</option>";
 
     // Get options for this field
     $options = $conn->prepare("
@@ -46,5 +46,7 @@ while ($field = $result->fetch_assoc()) {
         echo "<option value='{$val}'>{$val}</option>";
     }
 
-    echo "</select><br><br>";
+    echo "</select>";
+    echo "</div>";
 }
+?>
