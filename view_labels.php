@@ -240,7 +240,6 @@ $projects = $conn->query("
                 page-break-after: always;
                 display: block;
                 visibility: visible;
-                border: 3px solid #000;
                 margin-bottom: 20px;
                 padding: 15px;
                 break-inside: avoid;
@@ -252,8 +251,8 @@ $projects = $conn->query("
             }
             
             .label-card::after {
-        display: none !important;
-    }
+                display: none !important;
+            }
             .label-header {
                 margin-bottom: 10px;
                 page-break-after: avoid;
