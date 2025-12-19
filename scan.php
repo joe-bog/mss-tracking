@@ -242,6 +242,7 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             font-size: 14px;
         }
         
+        /* Main Action Button */
         .btn-primary {
             background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
             color: white;
@@ -254,14 +255,25 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             transition: all 0.2s;
             width: 100%;
         }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+
+        /* Secondary/Camera Button */
+        .btn-secondary {
+            background: #ffffff;
+            color: #2c3e50;
+            padding: 14px 28px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 12px;
         }
         
-        .btn-primary:active {
-            transform: translateY(0);
+        .btn-primary:hover, .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
         }
         
         .alert {
@@ -276,14 +288,8 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
         }
         
         @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .alert.error {
@@ -305,39 +311,36 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-        
-        .back-link:hover {
-            background: #f8f9fa;
-            transform: translateX(-4px);
-        }
-        
-        .text-center {
+
+        .camera-panel {
+            display: none;
+            margin-top: 20px;
             text-align: center;
         }
-        
-        @media (max-width: 768px) {
-            body {
-                padding: 15px;
-            }
-            
-            .header h1 {
-                font-size: 24px;
-            }
-            
-            .card {
-                padding: 20px;
-            }
-            
-            .progress-numbers {
-                font-size: 32px;
-            }
+
+        .camera-panel.active {
+            display: block;
+        }
+
+        .camera-preview {
+            width: 100%;
+            max-width: 420px;
+            border-radius: 12px;
+            border: 2px solid #e0e6ed;
+            background: #000;
+        }
+
+        .scan-status {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #7f8c8d;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📱 Scan License Plate</h1>
+            <h1>📱 Project Scanning</h1>
             <p>Logged in as: <?= htmlspecialchars($_SESSION['user_name']) ?></p>
         </div>
         
@@ -348,25 +351,40 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             </div>
         <?php endif; ?>
         
-        <!-- SCAN BARCODE -->
         <?php if (!$step): ?>
             <div class="card">
-                <div class="scan-icon">📷</div>
-                <form method="post">
+                <div class="scan-icon">🔍</div>
+                <form method="post" id="scan-form">
                     <div class="form-group">
-                        <label>Scan Barcode to Continue</label>
+                        <label>Enter or Scan Barcode</label>
                         <input type="text"
+                               id="barcode-input"
                                name="barcode"
                                autofocus
-                               inputmode="none"
                                placeholder="PROJECT-XXXXX"
                                required>
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn-primary">
+                            Enter / Lookup Project
+                        </button>
+                        
+                        <button type="button" class="btn-secondary" id="start-camera">
+                            📷 Start Camera Scan
+                        </button>
+                    </div>
+
+                    <div class="camera-panel" id="camera-panel">
+                        <video id="camera-preview" class="camera-preview" muted playsinline></video>
+                        <div class="scan-status" id="scan-status">
+                            Align the barcode within the frame to scan.
+                        </div>
                     </div>
                 </form>
             </div>
         <?php endif; ?>
         
-        <!-- STEP INFO + QUANTITY -->
         <?php if ($step && $project): ?>
             <div class="card">
                 <div class="project-info">
@@ -377,10 +395,6 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
                     <div class="info-row">
                         <span class="info-label">Current Step</span>
                         <span class="info-value"><?= htmlspecialchars($step['step_description']) ?></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Template</span>
-                        <span class="info-value"><?= htmlspecialchars($project['template_name']) ?></span>
                     </div>
                 </div>
                 
@@ -402,24 +416,13 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
                     </div>
                 </div>
                 
-                <!-- QUANTITY CONFIRM -->
                 <form method="post" action="update_step.php">
                     <input type="hidden" name="barcode" value="<?= htmlspecialchars($barcode) ?>">
-                    
                     <div class="form-group">
                         <label>Enter Quantity Completed</label>
-                        <input type="number"
-                               name="updated_qty"
-                               min="1"
-                               max="<?= $remaining ?>"
-                               autofocus
-                               required
-                               style="font-size: 24px; padding: 20px;">
+                        <input type="number" name="updated_qty" min="1" max="<?= $remaining ?>" autofocus required style="font-size: 24px; padding: 20px;">
                     </div>
-                    
-                    <button type="submit" class="btn-primary">
-                        ✓ Confirm Update
-                    </button>
+                    <button type="submit" class="btn-primary">✓ Confirm Update</button>
                 </form>
             </div>
         <?php endif; ?>
@@ -428,5 +431,50 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             <a href="index.php" class="back-link">← Back to Home</a>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+    <script>
+        const startButton = document.getElementById('start-camera');
+        const cameraPanel = document.getElementById('camera-panel');
+        const cameraPreview = document.getElementById('camera-preview');
+        const scanStatus = document.getElementById('scan-status');
+        const barcodeInput = document.getElementById('barcode-input');
+        const scanForm = document.getElementById('scan-form');
+
+        if (startButton) {
+            let codeReader = null;
+            const setStatus = (message) => { if (scanStatus) scanStatus.textContent = message; };
+
+            startButton.addEventListener('click', () => {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    setStatus('Camera access is not supported on this device.');
+                    return;
+                }
+
+                startButton.disabled = true;
+                startButton.textContent = 'Scanning...';
+                cameraPanel.classList.add('active');
+                setStatus('Starting camera...');
+
+                codeReader = new ZXing.BrowserMultiFormatReader();
+                codeReader.decodeFromVideoDevice(
+                    null,
+                    cameraPreview,
+                    (result, error) => {
+                        if (result) {
+                            barcodeInput.value = result.getText();
+                            setStatus('Barcode detected. Submitting...');
+                            codeReader.reset();
+                            scanForm.submit();
+                        }
+                    }
+                ).catch(() => {
+                    setStatus('Unable to access camera. Check permissions.');
+                    startButton.disabled = false;
+                    startButton.textContent = '📷 Start Camera Scan';
+                });
+            });
+        }
+    </script>
 </body>
 </html>
