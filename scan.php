@@ -270,8 +270,23 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             width: 100%;
             margin-top: 12px;
         }
+
+        /* Complete Step Button */
+        .btn-complete {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 16px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-top: 12px;
+        }
         
-        .btn-primary:hover, .btn-secondary:hover {
+        .btn-primary:hover, .btn-secondary:hover, .btn-complete:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(0,0,0,0.1);
         }
@@ -334,6 +349,12 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             margin-top: 12px;
             font-size: 14px;
             color: #7f8c8d;
+        }
+
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
     </style>
 </head>
@@ -416,13 +437,25 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
                     </div>
                 </div>
                 
-                <form method="post" action="update_step.php">
+                <form method="post" action="update_step.php" id="update-form">
                     <input type="hidden" name="barcode" value="<?= htmlspecialchars($barcode) ?>">
                     <div class="form-group">
                         <label>Enter Quantity Completed</label>
-                        <input type="number" name="updated_qty" min="1" max="<?= $remaining ?>" autofocus required style="font-size: 24px; padding: 20px;">
+                        <input type="number" 
+                               name="updated_qty" 
+                               id="qty-input"
+                               min="1" 
+                               max="<?= $remaining ?>" 
+                               autofocus 
+                               required 
+                               style="font-size: 24px; padding: 20px;">
                     </div>
-                    <button type="submit" class="btn-primary">✓ Confirm Update</button>
+                    <div class="button-group">
+                        <button type="submit" class="btn-primary">✓ Confirm Update</button>
+                        <button type="button" class="btn-complete" id="complete-step-btn">
+                            Skip to Next Step
+                        </button>
+                    </div>
                 </form>
             </div>
         <?php endif; ?>
@@ -440,6 +473,22 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
         const scanStatus = document.getElementById('scan-status');
         const barcodeInput = document.getElementById('barcode-input');
         const scanForm = document.getElementById('scan-form');
+
+        // Complete Step Button Handler
+        const completeStepBtn = document.getElementById('complete-step-btn');
+        if (completeStepBtn) {
+            completeStepBtn.addEventListener('click', function() {
+                const qtyInput = document.getElementById('qty-input');
+                const updateForm = document.getElementById('update-form');
+                const remaining = <?= $remaining ?? 0 ?>;
+                
+                // Set the quantity to the remaining amount
+                qtyInput.value = remaining;
+                
+                // Submit the form
+                updateForm.submit();
+            });
+        }
 
         if (startButton) {
             let codeReader = null;

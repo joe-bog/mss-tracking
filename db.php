@@ -1,7 +1,7 @@
 <?php
 $host = "localhost";
 $user = "root";
-$pass = "root"; // MAMP default password is 'root'
+$pass = "root"; 
 $dbname = "local_c3evlchips";
 
 // Create connection

@@ -1,5 +1,11 @@
 <?php
 include 'auth_check.php';
+
+// If user is not Admin, redirect to user_dashboard.php
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'Admin') {
+    header('Location: user_dashboard.php');
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -266,6 +272,17 @@ include 'auth_check.php';
                 <a href="view_labels.php" class="card-link">View Labels</a>
             </div>
         </div>
+        <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Admin'): ?>
+            <div class="card admin">
+            <div class="card-header">
+                <div class="card-icon">🛡️</div>
+                <h2>Admin</h2>
+            </div>
+            <div class="card-links">
+                <a href="create_user.php" class="card-link">Add New User Profile</a>
+            </div>
+        </div>
+<?php endif; ?>
     </div>
 </body>
 </html>

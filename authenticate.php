@@ -2,30 +2,67 @@
 session_start();
 include 'db.php';
 
-if (!isset($_POST['user_id'])) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: login.php");
     exit;
 }
 
-$user_id = intval($_POST['user_id']);
+if (!isset($_POST['user_id'])) {
+    header("Location: login.php?err=missing");
+    exit;
+}
 
-// Get user info
-$stmt = $conn->prepare("SELECT first_name, last_name FROM users WHERE user_id = ?");
+$user_id = (int)$_POST['user_id'];
+
+if ($user_id <= 0 || $password === '') {
+    header("Location: login.php?err=missing");
+    exit;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Get user info
+|--------------------------------------------------------------------------
+*/
+$stmt = $conn->prepare("
+    SELECT user_id, first_name, last_name, role
+    FROM users
+    WHERE user_id = ?
+    LIMIT 1
+");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows === 1) {
-    $user = $result->fetch_assoc();
-
-    // Store user info in session
-    $_SESSION['user_id'] = $user_id;
-    $_SESSION['user_name'] = $user['first_name'] . " " . $user['last_name'];
-
-    header("Location: index.php"); // Change this later
+if ($result->num_rows !== 1) {
+    header("Location: login.php?err=user");
     exit;
-
-} else {
-    echo "Invalid user.";
 }
-?>
+
+$user = $result->fetch_assoc();
+
+$dbRole = $user['role'] ?? 'user';
+
+
+/*
+|--------------------------------------------------------------------------
+| Successful login: store session data
+|--------------------------------------------------------------------------
+*/
+session_regenerate_id(true);
+
+$_SESSION['user_id'] = (int)$user['user_id'];
+$_SESSION['user_name'] = trim(($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''));
+$_SESSION['user_role'] = $dbRole;
+
+/*
+|--------------------------------------------------------------------------
+| Role-based redirect
+|--------------------------------------------------------------------------
+*/
+if ($dbRole === 'Admin') {
+    header("Location: index.php");
+} else {
+    header("Location: user_dashboard.php");
+}
+exit;

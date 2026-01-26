@@ -341,7 +341,7 @@ $templates = $conn->query("
                 </div>
                 <div class="step" id="step4">
                     <div class="step-circle">4</div>
-                    <div class="step-label">Quantity</div>
+                    <div class="step-label">Quantity of 12' Planks</div>
                 </div>
             </div>
             
@@ -395,7 +395,7 @@ $templates = $conn->query("
                     <div class="form-group">
                         <label>Quantity Required</label>
                         <input type="number" name="requested_qty" min="1" placeholder="Enter quantity" required>
-                        <p class="helper-text">How many units need to be produced?</p>
+                        <p class="helper-text">How many 12ft planks are used?</p>
                     </div>
                 </div>
                 

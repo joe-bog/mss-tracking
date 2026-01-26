@@ -14,6 +14,7 @@ $projects = $conn->query("
         p.requested_qty,
         p.style,
         p.color,
+        p.created_at,
         p.date_completed
     FROM projects p
     ORDER BY p.project_id DESC
@@ -290,6 +291,7 @@ $projects = $conn->query("
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                <th>Start Date</th>
                                 <th>Template</th>
                                 <th>Customer</th>
                                 <th>Style</th>
@@ -357,8 +359,11 @@ $projects = $conn->query("
                                 
                                 <tr>
                                     <td>
-                                        <span class="id-badge">#<?= $p['project_id']; ?></span>
+                                        <a href="view_single_project.php?project_id=<?= $p['project_id']; ?>" style="color: white; text-decoration: none; margin: 0;">
+                                            <span class="id-badge">#<?= $p['project_id']; ?></span>
+                                        </a>
                                     </td>
+                                    <td><?= date("m/d/Y", strtotime($p['created_at'])); ?></td>
                                     <td><?= htmlspecialchars($p['template_name']); ?></td>
                                     <td><?= htmlspecialchars($p['customer_code']); ?></td>
                                     <td><?= htmlspecialchars($p['style']); ?></td>
