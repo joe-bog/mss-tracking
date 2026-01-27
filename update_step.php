@@ -52,7 +52,7 @@ if (!$project) {
 }
 
 $template_id   = (int)$project['template_id'];
-$requested_qty = (int)$project['requested_qty'];
+$final_chip_qty = (int)$project['final_chip_qty'];
 
 /*
 |--------------------------------------------------------------------------
@@ -74,7 +74,7 @@ $stmt = $conn->prepare("
     ORDER BY pts.step_number ASC
     LIMIT 1
 ");
-$stmt->bind_param("iii", $project_id, $template_id, $requested_qty);
+$stmt->bind_param("iii", $project_id, $template_id, $final_chip_qty);
 $stmt->execute();
 
 $step = $stmt->get_result()->fetch_assoc();
@@ -122,7 +122,7 @@ if ($step['step_number'] > 1) {
 |--------------------------------------------------------------------------
 */
 $completed_so_far = (int)$step['completed_qty'];
-$remaining        = $requested_qty - $completed_so_far;
+$remaining        = $final_chip_qty - $completed_so_far;
 
 if ($updated_qty > $remaining) {
     header("Location: scan.php?error=Quantity+exceeds+remaining+$remaining");
@@ -159,7 +159,7 @@ $stmt->execute();
 |--------------------------------------------------------------------------
 */
 $new_completed = $completed_so_far + $updated_qty;
-$new_remaining = $requested_qty - $new_completed;
+$new_remaining = $final_chip_qty - $new_completed;
 
 /*
 |--------------------------------------------------------------------------
@@ -168,7 +168,7 @@ $new_remaining = $requested_qty - $new_completed;
 */
 $nextStep = null;
 
-if ($new_completed >= $requested_qty) {
+if ($new_completed >= $final_chip_qty) {
     $next = $conn->query("
         SELECT step_description
         FROM project_template_steps
@@ -188,7 +188,7 @@ if ($new_completed >= $requested_qty) {
 | 12. If THIS was the LAST step and it's now complete → close project
 |--------------------------------------------------------------------------
 */
-if ($new_completed >= $requested_qty && !$nextStep) {
+if ($new_completed >= $final_chip_qty && !$nextStep) {
 
     $stmt = $conn->prepare("
         UPDATE projects

@@ -14,7 +14,7 @@ $projects = $conn->query("
         customer_code,
         style,
         color,
-        requested_qty,
+        final_chip_qty,
         created_at
     FROM projects
     WHERE date_completed IS NULL
@@ -329,7 +329,7 @@ $projects = $conn->query("
                             strtoupper(str_replace(" ", "", $p['template_name'])) . "-" .
                             $p['style'] . "-" .
                             strtoupper($p['color']) . "-" .
-                            $p['requested_qty'];
+                            $p['final_chip_qty'];
                     ?>
                     
                     <div class="label-card" onclick="printSingle(this)">

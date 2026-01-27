@@ -1,4 +1,4 @@
- <?php
+<?php
 session_start();
 include 'db.php';
 
@@ -8,7 +8,7 @@ include 'db.php';
 |--------------------------------------------------------------------------
 */
 if (isset($_SESSION['user_id'])) {
-    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Admin') {
+    if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
         header("Location: index.php");
     } else {
         header("Location: user_dashboard.php");
@@ -26,10 +26,10 @@ $message_type = "";
 
 if (isset($_GET['err'])) {
     if ($_GET['err'] === 'missing') {
-        $message = "Please select your name.";
+        $message = "Please select your name and enter your password.";
         $message_type = "error";
     } elseif ($_GET['err'] === 'invalid') {
-        $message = "Invalid user selection.";
+        $message = "Invalid name or password.";
         $message_type = "error";
     } elseif ($_GET['err'] === 'user') {
         $message = "User not found.";
@@ -136,7 +136,7 @@ $result = $conn->query("SELECT user_id, first_name, last_name FROM users ORDER B
             font-size: 14px;
         }
 
-        .form-group select {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 14px 16px;
             border: 2px solid #e0e6ed;
@@ -144,6 +144,9 @@ $result = $conn->query("SELECT user_id, first_name, last_name FROM users ORDER B
             font-size: 15px;
             transition: all 0.2s;
             font-family: inherit;
+        }
+
+        .form-group select {
             background: white;
             cursor: pointer;
             appearance: none;
@@ -153,7 +156,7 @@ $result = $conn->query("SELECT user_id, first_name, last_name FROM users ORDER B
             padding-right: 40px;
         }
 
-        .form-group select:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
@@ -222,7 +225,12 @@ $result = $conn->query("SELECT user_id, first_name, last_name FROM users ORDER B
                     </select>
                 </div>
 
-                <button type="submit" class="btn-primary">Enter →</button>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" required placeholder="Enter your password">
+                </div>
+
+                <button type="submit" class="btn-primary">Login →</button>
 
                 <div class="helper">
                     If you don’t have access, contact an admin to create your user.

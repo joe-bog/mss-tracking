@@ -2,7 +2,7 @@
 include 'auth_check.php';
 
 // Redirect admins to the full dashboard
-if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'Admin') {
+if (isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin') {
     header('Location: index.php');
     exit();
 }

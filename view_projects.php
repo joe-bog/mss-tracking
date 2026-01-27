@@ -11,7 +11,7 @@ $projects = $conn->query("
         p.template_id,
         p.template_name,
         p.customer_code,
-        p.requested_qty,
+        p.final_chip_qty,
         p.style,
         p.color,
         p.created_at,
@@ -305,7 +305,7 @@ $projects = $conn->query("
                         <tbody>
                             <?php while ($p = $projects->fetch_assoc()): ?>
                                 <?php
-                                $requested_qty = (int)$p['requested_qty'];
+                                $final_chip_qty = (int)$p['final_chip_qty'];
                                 $current_step = "Completed";
                                 $current_step_number = null;
                                 $completed_qty = 0;
@@ -328,7 +328,7 @@ $projects = $conn->query("
                                         LIMIT 1
                                     ");
 
-                                    $stmt->bind_param("iii", $p['project_id'], $p['template_id'], $requested_qty);
+                                    $stmt->bind_param("iii", $p['project_id'], $p['template_id'], $final_chip_qty);
                                     $stmt->execute();
 
                                     $row = $stmt->get_result()->fetch_assoc();
@@ -346,13 +346,13 @@ $projects = $conn->query("
                                         $stmt2->execute();
                                         $completed_qty = (int)$stmt2->get_result()->fetch_assoc()['completed_qty'];
                                         
-                                        $percent = $requested_qty > 0
-                                            ? min(100, round(($completed_qty / $requested_qty) * 100))
+                                        $percent = $final_chip_qty > 0
+                                            ? min(100, round(($completed_qty / $final_chip_qty) * 100))
                                             : 0;
                                     }
                                 } else {
                                     // Project is completed
-                                    $completed_qty = $requested_qty;
+                                    $completed_qty = $final_chip_qty;
                                     $percent = 100;
                                 }
                                 ?>
@@ -376,7 +376,7 @@ $projects = $conn->query("
                                     <td>
                                         <div class="progress-bar">
                                             <div class="progress-fill" style="width: <?= $percent ?>%;">
-                                                <?= $completed_qty ?> / <?= $requested_qty ?>
+                                                <?= $completed_qty ?> / <?= $final_chip_qty ?>
                                             </div>
                                         </div>
                                     </td>

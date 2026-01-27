@@ -13,7 +13,7 @@ $completed_qty = intval($_POST['completed_qty']);
 
 // Fetch project to validate quantities
 $project = $conn->query("
-    SELECT requested_qty 
+    SELECT final_chip_qty 
     FROM projects 
     WHERE project_id = $project_id
 ")->fetch_assoc();
@@ -22,11 +22,11 @@ if (!$project) {
     die("Project not found.");
 }
 
-$requested_qty = intval($project['requested_qty']);
+$final_chip_qty = intval($project['final_chip_qty']);
 
 // Validate quantity
-if ($completed_qty < 0 || $completed_qty > $requested_qty) {
-    die("Invalid quantity. Must be between 0 and $requested_qty.");
+if ($completed_qty < 0 || $completed_qty > $final_chip_qty) {
+    die("Invalid quantity. Must be between 0 and $final_chip_qty.");
 }
 
 // Insert or update

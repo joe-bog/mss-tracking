@@ -4,7 +4,7 @@ include 'db.php';
 
 $customer_code = $_POST['customer_code'];
 $template_id   = intval($_POST['template_id']);
-$requested_qty = intval($_POST['requested_qty']);
+$final_chip_qty = intval($_POST['final_chip_qty']);
 $created_by    = $_SESSION['user_id'];
 
 // Load template fields
@@ -14,7 +14,7 @@ $fields = $conn->query("
     WHERE template_id = $template_id
 ");
 
-$style = null;
+$style = ' ';
 $color = null;
 
 while ($f = $fields->fetch_assoc()) {
@@ -41,7 +41,7 @@ if (!$style || !$color) {
 // Insert project
 $stmt = $conn->prepare("
     INSERT INTO projects
-    (created_by, template_id, template_name, customer_code, requested_qty, style, color)
+    (created_by, template_id, template_name, customer_code, final_chip_qty, style, color)
     SELECT ?, t.template_id, t.template_name, ?, ?, ?, ?
     FROM project_templates t
     WHERE t.template_id = ?
@@ -51,7 +51,7 @@ $stmt->bind_param(
     "isissi",
     $created_by,
     $customer_code,
-    $requested_qty,
+    $final_chip_qty,
     $style,
     $color,
     $template_id

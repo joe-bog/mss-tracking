@@ -267,7 +267,7 @@ $steps = $stmt->get_result();
             
             <div class="detail-row">
                 <div class="detail-label">Quantity:</div>
-                <div class="detail-value"><?= $project['requested_qty']; ?></div>
+                <div class="detail-value"><?= $project['final_chip_qty']; ?></div>
             </div>
             
             <div class="detail-row">

@@ -7,12 +7,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-if (!isset($_POST['user_id'])) {
+if (!isset($_POST['user_id'], $_POST['password'])) {
     header("Location: login.php?err=missing");
     exit;
 }
 
 $user_id = (int)$_POST['user_id'];
+$password = trim($_POST['password']);
 
 if ($user_id <= 0 || $password === '') {
     header("Location: login.php?err=missing");
@@ -21,11 +22,11 @@ if ($user_id <= 0 || $password === '') {
 
 /*
 |--------------------------------------------------------------------------
-| Get user info
+| Get user info (including role + password hash)
 |--------------------------------------------------------------------------
 */
 $stmt = $conn->prepare("
-    SELECT user_id, first_name, last_name, role
+    SELECT user_id, first_name, last_name, role, password
     FROM users
     WHERE user_id = ?
     LIMIT 1
@@ -41,8 +42,31 @@ if ($result->num_rows !== 1) {
 
 $user = $result->fetch_assoc();
 
+$dbPassword = $user['password'] ?? '';
 $dbRole = $user['role'] ?? 'user';
 
+/*
+|--------------------------------------------------------------------------
+| Password verification
+|--------------------------------------------------------------------------
+*/
+$ok = false;
+
+if (!empty($dbPassword)) {
+    if (password_verify($password, $dbPassword)) {
+        $ok = true;
+    } else {
+        // Legacy fallback
+        if (hash_equals($dbPassword, $password)) {
+            $ok = true;
+        }
+    }
+}
+
+if (!$ok) {
+    header("Location: login.php?err=invalid");
+    exit;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -60,7 +84,7 @@ $_SESSION['user_role'] = $dbRole;
 | Role-based redirect
 |--------------------------------------------------------------------------
 */
-if ($dbRole === 'Admin') {
+if ($dbRole === 'admin') {
     header("Location: index.php");
 } else {
     header("Location: user_dashboard.php");

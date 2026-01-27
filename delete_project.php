@@ -25,7 +25,7 @@ $project = $check->fetch_assoc();
 // Archive to completed_projects table
 $stmt = $conn->prepare("
     INSERT INTO completed_projects 
-    (project_id, template_id, template_name, customer_code, requested_qty, style, color, created_by, date_completed)
+    (project_id, template_id, template_name, customer_code, final_chip_qty, style, color, created_by, date_completed)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 ");
 
@@ -35,7 +35,7 @@ $stmt->bind_param(
     $project['template_id'],
     $project['template_name'],
     $project['customer_code'],
-    $project['requested_qty'],
+    $project['final_chip_qty'],
     $project['style'],
     $project['color'],
     $project['created_by'],
