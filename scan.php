@@ -7,6 +7,13 @@ $step = null;
 $completed = null;
 $remaining = null;
 
+// NEW: input mode defaults
+$input_unit = "chips";                 // "pieces" or "chips"
+$conversion_factor_to_chips = 1;       // 14 or 22 or 1
+$input_label = "Enter qty of chips";
+$unit_hint = "";                       // optional UI hint
+$max_input = null;                     // max value in the unit the user is entering
+
 /* --------------------------------
    HANDLE BARCODE LOOKUP
 ---------------------------------*/
@@ -31,7 +38,7 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
 
         if ($project) {
 
-            // Find current step + progress
+            // Find current step + progress (completed_qty is stored in CHIPS)
             $stmt = $conn->prepare("
                 SELECT pts.step_number, pts.step_description,
                        COALESCE(ps.completed_qty, 0) AS completed_qty
@@ -58,7 +65,73 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
 
             if ($step) {
                 $completed = (int)$step['completed_qty'];
-                $remaining = $project['final_chip_qty'] - $completed;
+                $remaining = max(0, (int)$project['final_chip_qty'] - $completed);
+
+                /*
+                |--------------------------------------------------------------------------
+                | NEW: Step Input Mode Decision (pieces vs chips)
+                |--------------------------------------------------------------------------
+                | Hardcoded mapping based on your step definitions image:
+                |
+                | ShopWorks:
+                |   Step 1 (Cut off nail fins)  -> input 4' pieces  (22 chips/piece)
+                |   Step 2 (Cut pieces to chips)-> input 4' pieces  (22 chips/piece)
+                |   Step 3+                     -> input chips      (1 chip/chip)
+                |
+                | PrintWorks (CNC):
+                |   Step 1 (CNC cut & drill)    -> input 3' pieces  (14 chips/piece)
+                |   Step 2+                     -> input chips      (1 chip/chip)
+                |
+                | NOTE: DB remains CHIP-based. We only change what the operator types.
+                */
+
+                $template_name = strtolower($project['template_name'] ?? '');
+                $step_number = (int)$step['step_number'];
+
+                $is_shopworks = (strpos($template_name, 'shopworks') !== false);
+                $is_printworks = (strpos($template_name, 'printworks') !== false);
+
+                if ($is_shopworks) {
+                    if ($step_number === 1 || $step_number === 2) {
+                        $input_unit = "pieces";
+                        $conversion_factor_to_chips = 22;
+                        $input_label = "Enter qty of 4’ pieces";
+                        $unit_hint = "1 piece = 22 chips";
+                    } else {
+                        $input_unit = "chips";
+                        $conversion_factor_to_chips = 1;
+                        $input_label = "Enter qty of chips";
+                    }
+                } elseif ($is_printworks) {
+                    if ($step_number === 1) {
+                        $input_unit = "pieces";
+                        $conversion_factor_to_chips = 14;
+                        $input_label = "Enter qty of 3’ pieces";
+                        $unit_hint = "1 piece = 14 chips";
+                    } else {
+                        $input_unit = "chips";
+                        $conversion_factor_to_chips = 1;
+                        $input_label = "Enter qty of chips";
+                    }
+                } else {
+                    // default fallback
+                    $input_unit = "chips";
+                    $conversion_factor_to_chips = 1;
+                    $input_label = "Enter qty of chips";
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | NEW: Compute max allowed input IN THE UNIT being entered
+                |--------------------------------------------------------------------------
+                | remaining is in CHIPS. If input is pieces, convert remaining chips to
+                | a max number of pieces (ceil) so user can finish the step.
+                */
+                if ($input_unit === "pieces") {
+                    $max_input = (int)ceil($remaining / max(1, $conversion_factor_to_chips));
+                } else {
+                    $max_input = $remaining;
+                }
             }
         }
     }
@@ -73,24 +146,15 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
     <title>Scan Project</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        /* (your CSS unchanged) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #f5f7fa;
             padding: 20px;
             min-height: 100vh;
         }
-        
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
+        .container { max-width: 600px; margin: 0 auto; }
         .header {
             background: white;
             padding: 25px 30px;
@@ -99,7 +163,6 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             margin-bottom: 25px;
             text-align: center;
         }
-        
         .header h1 {
             color: #2c3e50;
             font-size: 28px;
@@ -108,13 +171,7 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             justify-content: center;
             gap: 12px;
         }
-        
-        .header p {
-            color: #7f8c8d;
-            font-size: 14px;
-            margin-top: 8px;
-        }
-        
+        .header p { color: #7f8c8d; font-size: 14px; margin-top: 8px; }
         .card {
             background: white;
             border-radius: 12px;
@@ -122,23 +179,17 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
-        
         .scan-icon {
             font-size: 64px;
             text-align: center;
             margin-bottom: 20px;
             animation: pulse 2s ease-in-out infinite;
         }
-        
         @keyframes pulse {
             0%, 100% { transform: scale(1); opacity: 0.8; }
             50% { transform: scale(1.05); opacity: 1; }
         }
-        
-        .form-group {
-            margin-bottom: 25px;
-        }
-        
+        .form-group { margin-bottom: 25px; }
         .form-group label {
             display: block;
             color: #2c3e50;
@@ -147,7 +198,6 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             font-size: 14px;
             text-align: center;
         }
-        
         .form-group input {
             width: 100%;
             padding: 16px 20px;
@@ -159,20 +209,17 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             text-align: center;
             letter-spacing: 2px;
         }
-        
         .form-group input:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         }
-        
         .project-info {
             background: #f8f9fa;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 25px;
         }
-        
         .info-row {
             display: flex;
             justify-content: space-between;
@@ -180,23 +227,10 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             padding: 12px 0;
             border-bottom: 1px solid #e0e6ed;
         }
-        
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        
-        .info-label {
-            color: #7f8c8d;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .info-value {
-            color: #2c3e50;
-            font-weight: 600;
-            font-size: 16px;
-        }
-        
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: #7f8c8d; font-weight: 600; font-size: 14px; }
+        .info-value { color: #2c3e50; font-weight: 600; font-size: 16px; }
+
         .progress-section {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -205,19 +239,8 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             margin-bottom: 25px;
             text-align: center;
         }
-        
-        .progress-section h3 {
-            margin-bottom: 15px;
-            font-size: 18px;
-            opacity: 0.9;
-        }
-        
-        .progress-numbers {
-            font-size: 42px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
+        .progress-section h3 { margin-bottom: 10px; font-size: 18px; opacity: 0.9; }
+        .progress-numbers { font-size: 42px; font-weight: bold; margin-bottom: 10px; }
         .progress-bar-container {
             background: rgba(255, 255, 255, 0.2);
             height: 12px;
@@ -225,14 +248,7 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             overflow: hidden;
             margin-top: 15px;
         }
-        
-        .progress-bar-fill {
-            background: white;
-            height: 100%;
-            border-radius: 6px;
-            transition: width 0.3s ease;
-        }
-        
+        .progress-bar-fill { background: white; height: 100%; border-radius: 6px; transition: width 0.3s ease; }
         .remaining-badge {
             display: inline-block;
             background: rgba(255, 255, 255, 0.3);
@@ -241,8 +257,7 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             margin-top: 12px;
             font-size: 14px;
         }
-        
-        /* Main Action Button */
+
         .btn-primary {
             background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
             color: white;
@@ -255,8 +270,6 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             transition: all 0.2s;
             width: 100%;
         }
-
-        /* Secondary/Camera Button */
         .btn-secondary {
             background: #ffffff;
             color: #2c3e50;
@@ -270,12 +283,11 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             width: 100%;
             margin-top: 12px;
         }
-        
         .btn-primary:hover, .btn-secondary:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(0,0,0,0.1);
         }
-        
+
         .alert {
             padding: 16px 20px;
             border-radius: 10px;
@@ -286,18 +298,12 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             gap: 12px;
             animation: slideDown 0.3s ease;
         }
-        
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 2px solid #f5c6cb;
-        }
-        
+        .alert.error { background: #f8d7da; color: #721c24; border: 2px solid #f5c6cb; }
+
         .back-link {
             display: inline-flex;
             align-items: center;
@@ -312,16 +318,8 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .camera-panel {
-            display: none;
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .camera-panel.active {
-            display: block;
-        }
-
+        .camera-panel { display: none; margin-top: 20px; text-align: center; }
+        .camera-panel.active { display: block; }
         .camera-preview {
             width: 100%;
             max-width: 420px;
@@ -329,152 +327,186 @@ if (isset($_POST['barcode']) && trim($_POST['barcode']) !== '') {
             border: 2px solid #e0e6ed;
             background: #000;
         }
+        .scan-status { margin-top: 12px; font-size: 14px; color: #7f8c8d; }
 
-        .scan-status {
-            margin-top: 12px;
-            font-size: 14px;
-            color: #7f8c8d;
+        /* NEW: small hint text */
+        .hint {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            margin-top: 6px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📱 Project Scanning</h1>
-            <p>Logged in as: <?= htmlspecialchars($_SESSION['user_name']) ?></p>
-        </div>
-        
-        <?php if (isset($_GET['error'])): ?>
-            <div class="alert error">
-                <span style="font-size: 24px;">❌</span>
-                <span><?= htmlspecialchars($_GET['error']) ?></span>
-            </div>
-        <?php endif; ?>
-        
-        <?php if (!$step): ?>
-            <div class="card">
-                <div class="scan-icon">🔍</div>
-                <form method="post" id="scan-form">
-                    <div class="form-group">
-                        <label>Enter or Scan Barcode</label>
-                        <input type="text"
-                               id="barcode-input"
-                               name="barcode"
-                               autofocus
-                               placeholder="PROJECT-XXXXX"
-                               required>
-                    </div>
-                    
-                    <div class="text-center">
-                        <button type="submit" class="btn-primary">
-                            Enter / Lookup Project
-                        </button>
-                        
-                        <button type="button" class="btn-secondary" id="start-camera">
-                            📷 Start Camera Scan
-                        </button>
-                    </div>
-
-                    <div class="camera-panel" id="camera-panel">
-                        <video id="camera-preview" class="camera-preview" muted playsinline></video>
-                        <div class="scan-status" id="scan-status">
-                            Align the barcode within the frame to scan.
-                        </div>
-                    </div>
-                </form>
-            </div>
-        <?php endif; ?>
-        
-        <?php if ($step && $project): ?>
-            <div class="card">
-                <div class="project-info">
-                    <div class="info-row">
-                        <span class="info-label">Project ID</span>
-                        <span class="info-value"><?= htmlspecialchars($barcode) ?></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Current Step</span>
-                        <span class="info-value"><?= htmlspecialchars($step['step_description']) ?></span>
-                    </div>
-                </div>
-                
-                <div class="progress-section">
-                    <h3>Step Progress</h3>
-                    <div class="progress-numbers">
-                        <?= $completed ?> / <?= $project['final_chip_qty'] ?>
-                    </div>
-                    <?php 
-                    $progress_percent = $project['final_chip_qty'] > 0 
-                        ? round(($completed / $project['final_chip_qty']) * 100) 
-                        : 0;
-                    ?>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar-fill" style="width: <?= $progress_percent ?>%"></div>
-                    </div>
-                    <div class="remaining-badge">
-                        <?= $remaining ?> Remaining
-                    </div>
-                </div>
-                
-                <form method="post" action="update_step.php">
-                    <input type="hidden" name="barcode" value="<?= htmlspecialchars($barcode) ?>">
-                    <div class="form-group">
-                        <label>Enter Quantity Completed</label>
-                        <input type="number" name="updated_qty" min="1" max="<?= $remaining ?>" autofocus required style="font-size: 24px; padding: 20px;">
-                    </div>
-                    <button type="submit" class="btn-primary">✓ Confirm Update</button>
-                </form>
-            </div>
-        <?php endif; ?>
-        
-        <div class="text-center">
-            <a href="index.php" class="back-link">← Back to Home</a>
-        </div>
+<div class="container">
+    <div class="header">
+        <h1>📱 Project Scanning</h1>
+        <p>Logged in as: <?= htmlspecialchars($_SESSION['user_name']) ?></p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
-    <script>
-        const startButton = document.getElementById('start-camera');
-        const cameraPanel = document.getElementById('camera-panel');
-        const cameraPreview = document.getElementById('camera-preview');
-        const scanStatus = document.getElementById('scan-status');
-        const barcodeInput = document.getElementById('barcode-input');
-        const scanForm = document.getElementById('scan-form');
+    <?php if (isset($_GET['error'])): ?>
+        <div class="alert error">
+            <span style="font-size: 24px;">❌</span>
+            <span><?= htmlspecialchars($_GET['error']) ?></span>
+        </div>
+    <?php endif; ?>
 
-        if (startButton) {
-            let codeReader = null;
-            const setStatus = (message) => { if (scanStatus) scanStatus.textContent = message; };
+    <?php if (!$step): ?>
+        <div class="card">
+            <div class="scan-icon">🔍</div>
+            <form method="post" id="scan-form">
+                <div class="form-group">
+                    <label>Enter or Scan Barcode</label>
+                    <input type="text"
+                           id="barcode-input"
+                           name="barcode"
+                           autofocus
+                           placeholder="PROJECT-XXXXX"
+                           required>
+                </div>
 
-            startButton.addEventListener('click', () => {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    setStatus('Camera access is not supported on this device.');
-                    return;
+                <div class="text-center">
+                    <button type="submit" class="btn-primary">Enter / Lookup Project</button>
+                    <button type="button" class="btn-secondary" id="start-camera">📷 Start Camera Scan</button>
+                </div>
+
+                <div class="camera-panel" id="camera-panel">
+                    <video id="camera-preview" class="camera-preview" muted playsinline></video>
+                    <div class="scan-status" id="scan-status">
+                        Align the barcode within the frame to scan.
+                    </div>
+                </div>
+            </form>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($step && $project): ?>
+        <div class="card">
+            <div class="project-info">
+                <div class="info-row">
+                    <span class="info-label">Project ID</span>
+                    <span class="info-value"><?= htmlspecialchars($barcode) ?></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Current Step</span>
+                    <span class="info-value"><?= htmlspecialchars($step['step_description']) ?></span>
+                </div>
+            </div>
+
+            <div class="progress-section">
+                <h3>Step Progress</h3>
+                <div class="progress-numbers">
+            <?php
+                if ($input_unit === "pieces") {
+                    // Calculate completed and total in pieces
+                    $completed_pieces = (int)floor($completed / max(1, $conversion_factor_to_chips));
+                    $total_pieces = (int)ceil($project['final_chip_qty'] / max(1, $conversion_factor_to_chips));
+                    echo "{$completed_pieces} / {$total_pieces} pieces";
+                } else {
+                    // Default: show chips
+                    echo "{$completed} / {$project['final_chip_qty']} chips";
                 }
+            ?>
+                </div>
 
-                startButton.disabled = true;
-                startButton.textContent = 'Scanning...';
-                cameraPanel.classList.add('active');
-                setStatus('Starting camera...');
+                <?php
+                if ($input_unit === "pieces") {
+                    $completed_pieces = (int)floor($completed / max(1, $conversion_factor_to_chips));
+                    $total_pieces = (int)ceil($project['final_chip_qty'] / max(1, $conversion_factor_to_chips));
+                    $progress_percent = $total_pieces > 0
+                        ? round(($completed_pieces / $total_pieces) * 100)
+                        : 0;
+                } else {
+                    $progress_percent = $project['final_chip_qty'] > 0
+                        ? round(($completed / $project['final_chip_qty']) * 100)
+                        : 0;
+                }
+                ?>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: <?= $progress_percent ?>%"></div>
+                </div>
+                <div class="remaining-badge">
+                    <?= $remaining ?> Remaining (chips)
+                </div>
 
-                codeReader = new ZXing.BrowserMultiFormatReader();
-                codeReader.decodeFromVideoDevice(
-                    null,
-                    cameraPreview,
-                    (result, error) => {
-                        if (result) {
-                            barcodeInput.value = result.getText();
-                            setStatus('Barcode detected. Submitting...');
-                            codeReader.reset();
-                            scanForm.submit();
-                        }
+                <?php if (!empty($unit_hint)): ?>
+                    <div class="hint"><?= htmlspecialchars($unit_hint) ?></div>
+                <?php endif; ?>
+            </div>
+
+            <form method="post" action="update_step.php">
+                <input type="hidden" name="barcode" value="<?= htmlspecialchars($barcode) ?>">
+
+                <!-- NEW: pass input mode info to update_step.php -->
+                <input type="hidden" name="input_unit" value="<?= htmlspecialchars($input_unit) ?>">
+                <input type="hidden" name="conversion_factor_to_chips" value="<?= (int)$conversion_factor_to_chips ?>">
+
+                <div class="form-group">
+                    <label><?= htmlspecialchars($input_label) ?></label>
+                    <input
+                        type="number"
+                        name="updated_qty"
+                        min="1"
+                        max="<?= (int)$max_input ?>"
+                        autofocus
+                        required
+                        style="font-size: 24px; padding: 20px;">
+                </div>
+
+                <button type="submit" class="btn-primary">✓ Confirm Update</button>
+            </form>
+        </div>
+    <?php endif; ?>
+
+    <div class="text-center">
+        <a href="index.php" class="back-link">← Back to Home</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
+<script>
+    const startButton = document.getElementById('start-camera');
+    const cameraPanel = document.getElementById('camera-panel');
+    const cameraPreview = document.getElementById('camera-preview');
+    const scanStatus = document.getElementById('scan-status');
+    const barcodeInput = document.getElementById('barcode-input');
+    const scanForm = document.getElementById('scan-form');
+
+    if (startButton) {
+        let codeReader = null;
+        const setStatus = (message) => { if (scanStatus) scanStatus.textContent = message; };
+
+        startButton.addEventListener('click', () => {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                setStatus('Camera access is not supported on this device.');
+                return;
+            }
+
+            startButton.disabled = true;
+            startButton.textContent = 'Scanning...';
+            cameraPanel.classList.add('active');
+            setStatus('Starting camera...');
+
+            codeReader = new ZXing.BrowserMultiFormatReader();
+            codeReader.decodeFromVideoDevice(
+                null,
+                cameraPreview,
+                (result, error) => {
+                    if (result) {
+                        barcodeInput.value = result.getText();
+                        setStatus('Barcode detected. Submitting...');
+                        codeReader.reset();
+                        scanForm.submit();
                     }
-                ).catch(() => {
-                    setStatus('Unable to access camera. Check permissions.');
-                    startButton.disabled = false;
-                    startButton.textContent = '📷 Start Camera Scan';
-                });
+                }
+            ).catch(() => {
+                setStatus('Unable to access camera. Check permissions.');
+                startButton.disabled = false;
+                startButton.textContent = '📷 Start Camera Scan';
             });
-        }
-    </script>
+        });
+    }
+</script>
 </body>
 </html>

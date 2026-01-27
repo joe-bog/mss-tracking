@@ -20,6 +20,29 @@ $updated_qty = intval($_POST['updated_qty']);
 
 /*
 |--------------------------------------------------------------------------
+| NEW: Read input unit + conversion factor from scan.php and convert to CHIPS
+|--------------------------------------------------------------------------
+| scan.php should send:
+|   input_unit = "pieces" or "chips"
+|   conversion_factor_to_chips = 14 or 22 or 1
+|
+| We will ALWAYS store chip-equivalent in project_steps.updated_qty
+*/
+$input_unit = isset($_POST['input_unit']) ? trim($_POST['input_unit']) : 'chips';
+$conversion_factor_to_chips = isset($_POST['conversion_factor_to_chips']) ? intval($_POST['conversion_factor_to_chips']) : 1;
+
+if ($conversion_factor_to_chips <= 0) {
+    $conversion_factor_to_chips = 1;
+}
+
+$entered_qty_raw = $updated_qty; // what the operator typed
+
+if ($input_unit === 'pieces') {
+    $updated_qty = $updated_qty * $conversion_factor_to_chips; // convert to chips
+}
+
+/*
+|--------------------------------------------------------------------------
 | 2. Extract project_id from barcode
 |--------------------------------------------------------------------------
 */
@@ -51,7 +74,7 @@ if (!$project) {
     exit;
 }
 
-$template_id   = (int)$project['template_id'];
+$template_id    = (int)$project['template_id'];
 $final_chip_qty = (int)$project['final_chip_qty'];
 
 /*
@@ -118,14 +141,22 @@ if ($step['step_number'] > 1) {
 
 /*
 |--------------------------------------------------------------------------
-| 7. Validate quantity does not exceed remaining
+| 7. Validate quantity does not exceed remaining (remaining is in CHIPS)
 |--------------------------------------------------------------------------
 */
 $completed_so_far = (int)$step['completed_qty'];
 $remaining        = $final_chip_qty - $completed_so_far;
 
+// $updated_qty is already converted to CHIPS if operator entered pieces
 if ($updated_qty > $remaining) {
-    header("Location: scan.php?error=Quantity+exceeds+remaining+$remaining");
+
+    // Show remaining in the same unit the operator typed
+    $remaining_display = $remaining;
+    if ($input_unit === 'pieces') {
+        $remaining_display = (int)ceil($remaining / max(1, $conversion_factor_to_chips));
+    }
+
+    header("Location: scan.php?error=Quantity+exceeds+remaining+$remaining_display&barcode=" . urlencode($barcode));
     exit;
 }
 
@@ -147,7 +178,7 @@ $stmt->bind_param(
     $project['template_name'],
     $step['step_number'],
     $step['step_description'],
-    $updated_qty,
+    $updated_qty, // CHIP-EQUIVALENT stored
     $_SESSION['user_id']
 );
 
@@ -155,7 +186,7 @@ $stmt->execute();
 
 /*
 |--------------------------------------------------------------------------
-| 9. Compute new progress
+| 9. Compute new progress (chips)
 |--------------------------------------------------------------------------
 */
 $new_completed = $completed_so_far + $updated_qty;
@@ -203,7 +234,6 @@ if ($new_completed >= $final_chip_qty && !$nextStep) {
     exit;
 }
 
-
 /*
 |--------------------------------------------------------------------------
 | 11. Redirect with rich feedback
@@ -221,5 +251,4 @@ if ($nextStep) {
 
 header("Location: $url");
 exit;
-
-
+?>

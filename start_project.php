@@ -394,8 +394,8 @@ $templates = $conn->query("
                     <div class="form-section-title">🔢 Step 4: Quantity</div>
                     <div class="form-group">
                         <label>Quantity Required</label>
-                        <input type="number" name="final_chip_qty" min="1" placeholder="Enter quantity" required>
-                        <p class="helper-text">How many units need to be produced?</p>
+                        <input type="number" name="plank_qty" min="1" placeholder="Enter quantity" required>
+                        <p class="helper-text">How many planks will be used?</p>
                     </div>
                 </div>
                 
@@ -484,7 +484,7 @@ $templates = $conn->query("
 
     // Update step indicator when quantity field is focused
     document.addEventListener('DOMContentLoaded', function() {
-        const qtyField = document.querySelector('input[name="final_chip_qty"]');
+        const qtyField = document.querySelector('input[name="plank_qty"]');
         if (qtyField) {
             qtyField.addEventListener('focus', function() {
                 if (document.getElementById('template_select').value) {

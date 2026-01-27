@@ -4,7 +4,7 @@ include 'db.php';
 
 $customer_code = $_POST['customer_code'];
 $template_id   = intval($_POST['template_id']);
-$final_chip_qty = intval($_POST['final_chip_qty']);
+$plank_qty = intval($_POST['plank_qty']);
 $created_by    = $_SESSION['user_id'];
 
 // Load template fields
@@ -38,23 +38,40 @@ if (!$style || !$color) {
     die("Style or Color not selected.");
 }
 
+// Fetch template name
+$template_name_stmt = $conn->prepare("SELECT template_name FROM project_templates WHERE template_id = ?");
+$template_name_stmt->bind_param("i", $template_id);
+$template_name_stmt->execute();
+$template_name_result = $template_name_stmt->get_result();
+$template_row = $template_name_result->fetch_assoc();
+$template_name = $template_row['template_name'] ?? '';
+
+$final_chip_qty = $plank_qty;
+
+if (trim($template_name) === 'PrintWorks Fandeck') {
+    $final_chip_qty *= 56;
+}
+else if(trim($template_name) === 'Shopworks Fandeck') {
+    $final_chip_qty *= 66;
+}
+
 // Insert project
 $stmt = $conn->prepare("
     INSERT INTO projects
-    (created_by, template_id, template_name, customer_code, final_chip_qty, style, color)
-    SELECT ?, t.template_id, t.template_name, ?, ?, ?, ?
-    FROM project_templates t
-    WHERE t.template_id = ?
+    (created_by, template_id, template_name, customer_code, final_chip_qty, style, color, plank_qty)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ");
 
 $stmt->bind_param(
-    "isissi",
+    "iississi",
     $created_by,
+    $template_id,
+    $template_name,
     $customer_code,
     $final_chip_qty,
     $style,
     $color,
-    $template_id
+    $plank_qty
 );
 
 $stmt->execute();
