@@ -401,8 +401,23 @@ if ($hasOpenProjects) {
                       </td>
 
                       <?php foreach ($colors as $color): ?>
-                        <?php $val = $needAgg[$tid][$color][$sn] ?? 0; ?>
-                        <td><span class="num"><?= (int)$val; ?></span></td>
+                        <?php
+                        $val = $needAgg[$tid][$color][$sn] ?? 0;
+                        $displayVal = $val;
+                        $unit = 'chips';
+
+                        // ShopWorks: Step 1 & 2 = 22 chips/piece
+                        if (stripos($templateLabel, 'shopworks') !== false && ($sn === 1 || $sn === 2)) {
+                            $displayVal = (int)ceil($val / 22);
+                            $unit = 'pieces';
+                        }
+                        // PrintWorks: Step 1 = 14 chips/piece
+                        elseif (stripos($templateLabel, 'printworks') !== false && $sn === 1) {
+                            $displayVal = (int)ceil($val / 14);
+                            $unit = 'pieces';
+                        }
+                        ?>
+                        <td><span class="num"><?= $displayVal ?></span> <span style="font-size:11px; color:#888;"><?= $unit ?></span></td>
                       <?php endforeach; ?>
                     </tr>
                   <?php endforeach; ?>
