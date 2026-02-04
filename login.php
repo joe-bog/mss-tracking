@@ -225,10 +225,6 @@ $result = $conn->query("SELECT user_id, first_name, last_name FROM users ORDER B
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label>Password</label>
-                    <input type="password" name="password" required placeholder="Enter your password">
-                </div>
 
                 <button type="submit" class="btn-primary">Login →</button>
 
